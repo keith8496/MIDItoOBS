@@ -79,7 +79,7 @@ def midicallback(message):
             input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
             if input_select in range(0, len(buttonActions)):
                 action = buttonActions[input_select]
-                setupButtonEvents(action, message.note, message.type)
+                setupButtonEvents(action, message.note, message.type, message.channel)
         elif message.type == "program_change":
             ignore = message.program
             print("Select Action:")
@@ -90,14 +90,14 @@ def midicallback(message):
             input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
             if input_select in range(0, len(buttonActions)):
                 action = buttonActions[input_select]
-                setupButtonEvents(action, message.program, message.type)
+                setupButtonEvents(action, message.program, message.type, message.channel)
     elif message.type == "control_change": #button or fader
         ignore = message.control
-        print("Select input type:\n0: Button\n1: Fader/Knob\n2: On-Off-Switch\n3: Ignore")
+        print("Select input type:\n0: Button\n1: Fader/Knob\n2: Ignore")
         try:
-            input_select = int(input("Select 0-3: "))
-            if input_select in range(0, 4):
-                if input_select == 0 or input_select == 2:
+            input_select = int(input("Select 0-2: "))
+            if input_select in range(0, 3):
+                if input_select == 0:
                     print()
                     print("Select Action:")
                     counter = 0
@@ -107,7 +107,7 @@ def midicallback(message):
                     input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
                     if input_select in range(0, len(buttonActions)):
                         action = buttonActions[input_select]
-                        setupButtonEvents(action, message.control, message.type)
+                        setupButtonEvents(action, message.control, message.type, message.channel)
                 elif input_select == 1:
                     print()
                     print("Select Action:")
@@ -118,7 +118,7 @@ def midicallback(message):
                     input_select = int(input("Select 0-%s: " % str(len(faderActions)-1)))
                     if input_select in range(0, len(faderActions)):
                         action = faderActions[input_select]
-                        setupFaderEvents(action, message.control, message.type)
+                        setupFaderEvents(action, message.control, message.type, message.channel)
                 elif input_select == 1:
                     print()
                     print("Select Action:")
@@ -129,12 +129,12 @@ def midicallback(message):
                     input_select = int(input("Select 0-%s: " % str(len(faderActions)-1)))
                     if input_select in range(0, len(buttonActions)):
                         action = buttonActions[input_select]
-                        setupButtonEvents(action, message.control, message.type)
+                        setupButtonEvents(action, message.control, message.type, message.channel)
         except ValueError:
             print("Please try again and enter a valid number")
 
 #I know this is kinda messy, but i challange you to make a better version(as a native plugin or pull request to obs-studio)
-def setupFaderEvents(action, NoC, msgType):
+def setupFaderEvents(action, NoC, msgType, channel):
     print()
     print("You selected: %s" % action)
     if action == "SetVolume":
@@ -150,7 +150,7 @@ def setupFaderEvents(action, NoC, msgType):
         source = printArraySelect(tempSceneList)
         scale = (0,1)
         action = jsonArchive["SetVolume"] % (source, "%s")
-        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetVolume")
+        saveFaderToFile(msgType, NoC, "fader", action, scale, "SetVolume", channel)
     elif action == "SetSyncOffset":
         updateSceneList()
         updateSpecialSources()
@@ -164,7 +164,7 @@ def setupFaderEvents(action, NoC, msgType):
         source = printArraySelect(tempSceneList)
         scale = askForInputScaling()
         action = jsonArchive["SetSyncOffset"] % (source, "%s")
-        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSyncOffset")
+        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSyncOffset", channel)
     elif action == "SetSourcePosition":
         updateSceneList()
         tempSceneList = []
@@ -182,7 +182,7 @@ def setupFaderEvents(action, NoC, msgType):
         if target in range(0, 2):
             scale = askForInputScaling()
             action = jsonArchive["SetSourcePosition"] % (selected["scene"], selected["source"], tempTargetList[target], "%s")
-            saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSourcePosition")
+            saveFaderToFile(msgType, NoC, "fader", action, scale, "SetSourcePosition", channel)
     elif action == "SetSourceRotation":
         updateSceneList()
         tempSceneList = []
@@ -197,11 +197,11 @@ def setupFaderEvents(action, NoC, msgType):
         selected = tempSceneList[int(input("Select 0-%s: " % str(len(tempSceneList)-1)))]
         scale = askForInputScaling()
         action = jsonArchive["SetSourceRotation"] % (selected["scene"], selected["source"], "%s")
-        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSourceRotation")
+        saveFaderToFile(msgType, NoC, "fader", action, scale, "SetSourceRotation", channel)
     elif action == "SetTransitionDuration":
         scale = askForInputScaling()
         action = jsonArchive["SetTransitionDuration"]
-        saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetTransitionDuration")
+        saveFaderToFile(msgType, NoC, "fader", action, scale, "SetTransitionDuration", channel)
     elif action == "SetSourceScale":
         updateSceneList()
         tempSceneList = []
@@ -219,21 +219,21 @@ def setupFaderEvents(action, NoC, msgType):
         if target in range(0, 2):
             scale = askForInputScaling()
             action = jsonArchive["SetSourceScale"] % (selected["scene"], selected["source"], tempTargetList[target], "%s")
-            saveFaderToFile(msgType, NoC, "fader" , action, scale, "SetSourceScale")
+            saveFaderToFile(msgType, NoC, "fader", action, scale, "SetSourceScale", channel)
         
-def setupButtonEvents(action, NoC, msgType):
+def setupButtonEvents(action, NoC, msgType, channel):
     print()
     print("You selected: %s" % action)
     if action == "SetCurrentScene": #fertig
         updateSceneList()
         scene = printArraySelect(sceneListShort)
         action = jsonArchive["SetCurrentScene"] % scene
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetPreviewScene": #fertig
         updateSceneList()
         scene = printArraySelect(sceneListShort)
         action = jsonArchive["SetPreviewScene"] % scene
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "TransitionToProgram": #fertig
         updateTransitionList()
         transitionList.append("--Current--")
@@ -244,42 +244,42 @@ def setupButtonEvents(action, NoC, msgType):
             action = jsonArchive["TransitionToProgram"] % tmp
         else:
             action = jsonArchive["TransitionToProgram"] % ""
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetCurrentTransition": #fertig
         updateTransitionList()
         transition = printArraySelect(transitionList)
         action = jsonArchive["SetCurrentTransition"] % transition
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StartStopStreaming": #fertig
         action = jsonArchive["StartStopStreaming"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StartStreaming": #fertig
         action = jsonArchive["StartStreaming"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StopStreaming": #fertig
         action = jsonArchive["StopStreaming"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StartStopRecording": #fertig
         action = jsonArchive["StartStopRecording"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StartRecording": #fertig
         action = jsonArchive["StartRecording"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StopRecording": #fertig
         action = jsonArchive["StopRecording"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StartStopReplayBuffer": #fertig
         action = jsonArchive["StartStopReplayBuffer"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StartReplayBuffer": #fertig
         action = jsonArchive["StartReplayBuffer"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "StopReplayBuffer": #fertig
         action = jsonArchive["StopReplayBuffer"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SaveReplayBuffer": #fertig
         action = jsonArchive["SaveReplayBuffer"]
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetSourceVisibility": #fertig
         updateSceneList()
         tempSceneList = []
@@ -299,7 +299,7 @@ def setupButtonEvents(action, NoC, msgType):
         if scene != "--Current--":
             source = source + '", "scene": "' + scene
         action = jsonArchive["SetSourceVisibility"] % (source, str(render))
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "ToggleSourceVisibility": #fertig
         updateSceneList()
         tempSceneList = []
@@ -313,7 +313,7 @@ def setupButtonEvents(action, NoC, msgType):
         if scene != "--Current--":
             source = source + '", "scene": "' + scene
         action = jsonArchive["ToggleSourceVisibility"] % (source, "%s")
-        saveTODOButtonToFile(msgType, NoC, "button" , action, "ToggleSourceVisibility", "x")
+        saveTODOButtonToFile(msgType, NoC, channel, "button" , action, "ToggleSourceVisibility", "x")
     elif action == "ToggleMute": #fertig
         updateSceneList()
         updateSpecialSources()
@@ -326,7 +326,7 @@ def setupButtonEvents(action, NoC, msgType):
             tempSceneList.append(item)
         source = printArraySelect(tempSceneList)
         action = jsonArchive["ToggleMute"] % source
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetMute": #fertig
         updateSceneList()
         updateSpecialSources()
@@ -345,26 +345,26 @@ def setupButtonEvents(action, NoC, msgType):
         else:
             muted = "true"
         action = jsonArchive["SetMute"] % (source, muted)
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetTransitionDuration": #fertig
         time = int(input("Input the desired time(in milliseconds): "))
         action = jsonArchive["SetTransitionDuration"] % time
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetCurrentProfile": #fertig
         updateProfileList()
         profilename = printArraySelect(profilesList)
         action = jsonArchive["SetCurrentProfile"] % profilename
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetRecordingFolder": #fertig
         recpath = str(input("Input the desired path: "))
         action = jsonArchive["SetRecordingFolder"] % recpath
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetCurrentSceneCollection": #fertig
         updatesceneCollectionList()
         scenecollection = printArraySelect(sceneCollectionList)
         print(scenecollection)
         action = jsonArchive["SetCurrentSceneCollection"] % scenecollection
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "ResetSceneItem": #fertig
         updateSceneList()
         tempSceneList = []
@@ -380,7 +380,7 @@ def setupButtonEvents(action, NoC, msgType):
         else:
             render = '"' + str(source) + '"'
         action = jsonArchive["ResetSceneItem"] % (render)
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetTextGDIPlusText":
         updateSceneList()
         tempSceneList = []
@@ -391,7 +391,7 @@ def setupButtonEvents(action, NoC, msgType):
         source = printArraySelect(tempSceneList)
         text = str(input("Input the desired text: "))
         action = jsonArchive["SetTextGDIPlusText"] % (source, text)
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "SetBrowserSourceURL":
         updateSceneList()
         tempSceneList = []
@@ -402,7 +402,7 @@ def setupButtonEvents(action, NoC, msgType):
         source = printArraySelect(tempSceneList)
         url = str(input("Input the desired URL: "))
         action = jsonArchive["SetBrowserSourceURL"] % (source, url)
-        saveButtonToFile(msgType, NoC, "button" , action)
+        saveButtonToFile(msgType, NoC, channel, "button" , action)
     elif action == "ReloadBrowserSource":
         updateSceneList()
         tempSceneList = []
@@ -412,38 +412,38 @@ def setupButtonEvents(action, NoC, msgType):
                     tempSceneList.append(line["name"])
         source = printArraySelect(tempSceneList)
         action = jsonArchive["ReloadBrowserSource"] % (source, "%s")
-        saveTODOButtonToFile(msgType, NoC, "button" , action, "ReloadBrowserSource", source)
+        saveTODOButtonToFile(msgType, NoC, channel, "button" , action, "ReloadBrowserSource", source)
 
         
-def saveFaderToFile(msg_type, msgNoC, input_type, action, scale, cmd):
-    print("Saved %s with control %s for action %s" % (msg_type, msgNoC, cmd))
+def saveFaderToFile(msg_type, msgNoC, input_type, action, scale, cmd, channel):
+    print("Saved %s with control %s channel %s for action %s" % (msg_type, msgNoC, channel, cmd))
     Search = Query()
-    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC))
+    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.channel == channel))
     if result:
-        db.remove(Search.msgNoC == msgNoC)
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "scale_low": scale[0], "scale_high": scale[1], "action": action, "cmd": cmd})
+        db.remove(Search.msgNoC == msgNoC & Search.channel == channel)
+        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "channel": channel, "input_type": input_type, "scale_low": scale[0], "scale_high": scale[1], "action": action, "cmd": cmd})
     else:
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "scale_low": scale[0], "scale_high": scale[1], "action": action, "cmd": cmd})
+        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "channel": channel, "input_type": input_type, "scale_low": scale[0], "scale_high": scale[1], "action": action, "cmd": cmd})
 
-def saveButtonToFile(msg_type, msgNoC, input_type, action):
+def saveButtonToFile(msg_type, msgNoC, channel, input_type, action):
     print("Saved %s with note/control %s for action %s" % (msg_type, msgNoC, action))
     Search = Query()
-    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC))
+    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.channel == channel))
     if result:
-        db.remove(Search.msgNoC == msgNoC)
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action})
+        db.remove(Search.msgNoC == msgNoC & Search.channel == channel)
+        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "channel": channel, "input_type": input_type, "action" : action})
     else:
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action})
+        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "channel": channel, "input_type": input_type, "action" : action})
 
-def saveTODOButtonToFile(msg_type, msgNoC, input_type, action, request, target):
+def saveTODOButtonToFile(msg_type, msgNoC, channel, input_type, action, request, target):
     print("Saved %s with note/control %s for action %s" % (msg_type, msgNoC, action))
     Search = Query()
-    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC))
+    result = db.search((Search.msg_type == msg_type) & (Search.msgNoC == msgNoC) & (Search.channel == channel))
     if result:
-        db.remove(Search.msgNoC == msgNoC)
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action, "request": request, "target": target})
+        db.remove(Search.msgNoC == msgNoC & Search.channel == channel)
+        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "channel": channel, "input_type": input_type, "action" : action, "request": request, "target": target})
     else:
-        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "input_type": input_type, "action" : action, "request": request, "target": target})
+        db.insert({"msg_type": msg_type, "msgNoC": msgNoC, "channel": channel, "input_type": input_type, "action" : action, "request": request, "target": target})
 
 def printArraySelect(array):
     counter = 0

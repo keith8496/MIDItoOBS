@@ -91,23 +91,23 @@ class MidiHandler:
         self.log.debug("Received %s message from midi: %s" % (message.type, message))
 
         if message.type == "note_on":
-            return self.handle_midi_button(message.type, message.note)
+            return self.handle_midi_button(message.type, message.note, message.channel)
 
         if message.type == "note_off":
-            return self.handle_midi_button(message.type, message.note)
+            return self.handle_midi_button(message.type, message.note, message.channel)
 
         # `program_change` messages can be only used as regular buttons since
         # they have no extra value, unlike faders (`control_change`)
         if message.type == "program_change":
-            return self.handle_midi_button(message.type, message.program)
+            return self.handle_midi_button(message.type, message.program, message.channel)
 
         if message.type == "control_change":
-            return self.handle_midi_fader(message.control, message.value)
+            return self.handle_midi_fader(message.control, message.channel, message.value)
 
 
-    def handle_midi_button(self, type, note):
+    def handle_midi_button(self, type, note, channel):
         query = Query()
-        results = self.db.search((query.msg_type == type) & (query.msgNoC == note))
+        results = self.db.search((query.msg_type == type) & (query.msgNoC == note) & (query.channel == channel))
 
         if not results:
             self.log.debug("Cound not find action for note %s", note)
@@ -117,9 +117,9 @@ class MidiHandler:
             if self.send_action(result):
                 break
 
-    def handle_midi_fader(self, control, value):
+    def handle_midi_fader(self, control, channel, value):
         query = Query()
-        results = self.db.search((query.msg_type == "control_change") & (query.msgNoC == control))
+        results = self.db.search((query.msg_type == "control_change") & (query.msgNoC == control) & (query.channel == channel))
 
         if not results:
             self.log.debug("Cound not find action for fader %s", control)
