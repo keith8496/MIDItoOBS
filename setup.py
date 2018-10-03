@@ -62,38 +62,42 @@ def exitScript():
 
 def midicallback(message):
     global ignore
+    global ignore_type
     print()
     print(message)
     print()
-    if message.type == "note_on": #button only
-        ignore = message.note
-        print("Select Action:")
-        counter = 0
-        for action in buttonActions:
-            print("%s: %s" % (counter, action))
-            counter += 1
-        input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
-        if input_select in range(0, len(buttonActions)):
-            action = buttonActions[input_select]
-            setupButtonEvents(action, message.note, message.type)
-    elif message.type == "program_change": #button only
-        ignore = message.program
-        print("Select Action:")
-        counter = 0
-        for action in buttonActions:
-            print("%s: %s" % (counter, action))
-            counter += 1
-        input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
-        if input_select in range(0, len(buttonActions)):
-            action = buttonActions[input_select]
-            setupButtonEvents(action, message.program, message.type)
+    
+    if (message.type == "note_on" or message.type == "note_off" or message.type == "program_change"):
+        if (message.type == "note_on" or message.type == "note_off"):
+            ignore = message.note
+            ignore_type = message.type
+            print("Select Action:")
+            counter = 0
+            for action in buttonActions:
+                print("%s: %s" % (counter, action))
+                counter += 1
+            input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
+            if input_select in range(0, len(buttonActions)):
+                action = buttonActions[input_select]
+                setupButtonEvents(action, message.note, message.type)
+        elif message.type == "program_change":
+            ignore = message.program
+            print("Select Action:")
+            counter = 0
+            for action in buttonActions:
+                print("%s: %s" % (counter, action))
+                counter += 1
+            input_select = int(input("Select 0-%s: " % str(len(buttonActions)-1)))
+            if input_select in range(0, len(buttonActions)):
+                action = buttonActions[input_select]
+                setupButtonEvents(action, message.program, message.type)
     elif message.type == "control_change": #button or fader
         ignore = message.control
-        print("Select input type:\n0: Button\n1: Fader/Knob\n2: Ignore")
+        print("Select input type:\n0: Button\n1: Fader/Knob\n2: On-Off-Switch\n3: Ignore")
         try:
-            input_select = int(input("Select 0-2: "))
-            if input_select in range(0, 3):
-                if input_select == 0:
+            input_select = int(input("Select 0-3: "))
+            if input_select in range(0, 4):
+                if input_select == 0 or input_select == 2:
                     print()
                     print("Select Action:")
                     counter = 0
@@ -115,6 +119,17 @@ def midicallback(message):
                     if input_select in range(0, len(faderActions)):
                         action = faderActions[input_select]
                         setupFaderEvents(action, message.control, message.type)
+                elif input_select == 1:
+                    print()
+                    print("Select Action:")
+                    counter = 0
+                    for action in faderActions:
+                        print("%s: %s" % (counter, action))
+                        counter += 1
+                    input_select = int(input("Select 0-%s: " % str(len(faderActions)-1)))
+                    if input_select in range(0, len(buttonActions)):
+                        action = buttonActions[input_select]
+                        setupButtonEvents(action, message.control, message.type)
         except ValueError:
             print("Please try again and enter a valid number")
 
@@ -531,13 +546,14 @@ def updatesceneCollectionList():
         
 def mainLoop():
     global ignore
+    global ignore_type
     global savetime1
     while True:
         try:
             msg = midiport.receive()
             if msg:
-                if msg.type == "note_on":
-                    if msg.note != ignore:
+                if msg.type == "note_on" or msg.type == "note_off":
+                    if msg.note != ignore or (msg.note == ignore and msg.type != ignore_type):
                         midicallback(msg)
                         savetime1 = time.time()
                 if msg.type == "program_change":

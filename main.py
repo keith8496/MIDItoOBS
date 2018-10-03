@@ -26,7 +26,7 @@ SCRIPT_DIR = path.dirname(path.realpath(__file__))
 def map_scale(inp, ista, isto, osta, osto):
     return osta + (osto - osta) * ((inp - ista) / (isto - ista))
 
-def get_logger(name, level=logging.INFO):
+def get_logger(name, level=logging.DEBUG):
     log_format = logging.Formatter('[%(asctime)s] (%(levelname)s) %(message)s')
 
     std_output = logging.StreamHandler(stdout)
@@ -91,6 +91,9 @@ class MidiHandler:
         self.log.debug("Received %s message from midi: %s" % (message.type, message))
 
         if message.type == "note_on":
+            return self.handle_midi_button(message.type, message.note)
+
+        if message.type == "note_off":
             return self.handle_midi_button(message.type, message.note)
 
         # `program_change` messages can be only used as regular buttons since
